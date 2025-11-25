@@ -62,62 +62,339 @@ For computed properties you typically declare the type explicitly.
 
 
 
-   ```swift
-   var filteredAttractions {
-   ```
-
-   ``` Testing out things ```
-
    This caused a compile-time error because Swift requires a return type for every computed property.
 
-1. **Category filter inverted**
+2. **Category filter  - != Vs ==**
+    The above is found in the filteredAttractions,
 
-   ```swift
-   results = results.filter { $0.category != category }
+        ```
+   // ORIGINAL – inverted logic
+        if let category = selectedCategory {
+            results = results.filter { $0.category != category }
+        }
    ```
+    When the user selects "Food", it removed the food attractions instread of keeping them. So we modify the code to keep them as follows:
 
-   When a category was selected, the app removed those attractions instead of keeping them, so the filter behaved opposite to what the user expects.
 
-2. **Favorites filter inverted**
+```
+// Corrected codes -  keep only matching category
+if let category = selectedCategory {
+    results = results.filter { $0.category == category }
+}
+```
 
-   ```swift
-   results = results.filter { !favoriteIds.contains($0.id) }
-   ```
 
-   Enabling the “favorites” filter actually hid favorites and showed everything else.
+References: https://developer.apple.com/documentation/swift/array
 
-3. **Favorites could not be removed**
+filter() returns a new array containing only the elements that satisfy the predicate.
+Hence the correct predicate must be “category equals selectedCategory”, so the correct operator is ==, not !=.
 
-   ```swift
-   toggleFavorite: {
-       favoriteIds.insert(attraction.id)
-   }
-   ```
 
-   Tapping the heart only ever added IDs to the set; there was no way to toggle a favorite off.
 
-4. **Rating display and stars inconsistent (in `AttractionRowView`)**
+3. **Favorites filter  - here we have inverted logic**
 
-   ```swift
-   Text(String(format: "%.1f", attraction.rating * 2))
-   ```
+Inside the filteredAttractions:
 
-   The label doubled the rating (displaying up to 10.0), and the star icons were always filled, regardless of the underlying rating. This made the UI misleading.
+```
+// ORIGINAL - The code hides favorites when showFavorites is true
+if showFavorites {
+    results = results.filter { !favoriteIds.contains($0.id) }
+}
+```
 
-5. **Minor UX bug in favorites button**
+The code turning on the favorites filter ends up removing the favourites from the list.
+
+- showFavorites is marked with @State, so changing it automatically recomputes the view and updates the icon.
+- SwiftUI’s state system is built so that “the UI is a function of state”; the icon is just a projection of the showFavorites Boolean.
+
+
+```
+// Corrected  -  filled heart means  that the “favorites filter is ON”
+.toolbar {
+    ToolbarItem(placement: .navigationBarTrailing) {
+        Button(action: {
+            showFavorites.toggle()
+        }) {
+            Image(systemName: showFavorites ? "heart.fill" : "heart")
+                .foregroundColor(.red)
+        }
+        .accessibilityLabel(showFavorites ? "Show all attractions" : "Show favourites only")
+    }
+}
+```
+
+
+
+```
+// Corrected  -  We only show the favorites when showFavorites is true
+if showFavorites {
+    results = results.filter { favoriteIds.contains($0.id) }
+}
+```
+
+
+References: https://developer.apple.com/documentation/swift/set
+
+
+ - favoriteIds is a Set<UUID> storing the IDs of favorited attractions (Apple Developer website).
+ - Sets are collections of unique elements with fast membership tests.
+ - The correct predicate is “ID is contained in the set of favorite IDs”
+
+
+Therefore, Enabling the “favorites” filter. 
+
+
+4. **Togggling favorites by use of Set.insert/ set.remove**
+
+This is found in the List where each row passes a closure to AttractionRowView.
+
+```
+// ORIGINAL -  only add favorites, never remove it 
+List(filteredAttractions) { attraction in
+    AttractionRowView(
+        attraction: attraction,
+        isFavorite: favoriteIds.contains(attraction.id),
+        toggleFavorite: {
+            favoriteIds.insert(attraction.id)
+        }
+    )
+}
+```
+
+This lives in the List where each row passes a closure to AttractionRowView.
+
+
+
+```
+// corrected  - true will toggle on a Set
+List(filteredAttractions) { attraction in
+    AttractionRowView(
+        attraction: attraction,
+        isFavorite: favoriteIds.contains(attraction.id),
+        toggleFavorite: {
+            if favoriteIds.contains(attraction.id) {
+                favoriteIds.remove(attraction.id)
+            } else {
+                favoriteIds.insert(attraction.id)
+            }
+        }
+    )
+}
+
+```
+
+
+  - This is a standard pattern used for toggling membership in a Set.
+
+Tapping the heart several times only ever added IDs to the set; there was no way to toggle and remove it.
+
+
+
+Reference: https://developer.apple.com/documentation/swift/set
+
+ - Set.insert() adds an element if it isn’t already present.
+ - Set.remove(_:) removes an element from the set.
+ - This is a standard pattern for toggling membership in a Set.
+
+
+
+5. **Toolbar heart Icon - need the mapping @state to UI**
+
+   When showFavorites is set to true, the UI will show an empty heart. 
+
+```
+// ORIGINAL - the  icon meaning is reversed
+.toolbar {
+    ToolbarItem(placement: .navigationBarTrailing) {
+        Button(action: {
+            showFavorites.toggle()
+        }) {
+            Image(systemName: showFavorites ? "heart" : "heart.fill")
+                .foregroundColor(.red)
+        }
+    }
+}
+```
+
+
+References: https://developer.apple.com/documentation/swiftui/state
+
+
+```
+// Corrected  -  filled heart means “favorites filter is ON”
+.toolbar {
+    ToolbarItem(placement: .navigationBarTrailing) {
+        Button(action: {
+            showFavorites.toggle()
+        }) {
+            Image(systemName: showFavorites ? "heart.fill" : "heart")
+                .foregroundColor(.red)
+        }
+        .accessibilityLabel(showFavorites ? "Show all attractions" : "Show favourites only")
+    }
+}
+
+```
+
+ - showFavorites is marked with @State, so changing it automatically will recompute the view and updates the icon.
+ - SwiftUI’s state system is built so that “the UI is a function of state”; the icon is just a projection of the showFavorites Boolean (Apple Developer).
+
+
+
+
+6. Rating and stars – in the AttractionRowView
+
+    - In this section the app displays rating stars and a numeric rating for each attraction.
+    - The problem with this is that: Every row showed five filled stars, even for poor ratings.
+    - The numeric rating was also doubled (rating * 2), and hence the real-world 0–5 ratings appeared as 0–10.
+
+
+// ORIGINAL AttractionRowView code
+struct AttractionRowView: View {
+    let attraction: Attraction
+    let isFavorite: Bool
+    let toggleFavorite: () -> Void
+
+    var body: some View {
+        HStack {
+            Text(attraction.category.rawValue)
+                .font(.system(size: 40))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(attraction.name)
+                    .font(.headline)
+
+                Text(attraction.description)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+
+                HStack {
+                    HStack(spacing: 2) {
+                        // BUG: always shows 5 filled stars,
+                        // regardless of rating
+                        ForEach(0..<5) { _ in
+                            Image(systemName: "star.fill")
+                                .foregroundColor(.yellow)
+                                .font(.system(size: 12))
+                        }
+                    }
+
+                    // BUG: multiplies rating by 2, so a 4.8 rating shows 9.6
+                    Text(String(format: "%.1f", attraction.rating * 2))
+                        .font(.caption)
+                        .foregroundColor(.gray)
+
+                    Spacer()
+
+                    Text(attraction.isOpen ? "Open" : "Closed")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(attraction.isOpen ? Color.green.opacity(0.2) :
+                                      Color.red.opacity(0.2))
+                        .cornerRadius(4)
+                }
+            }
+
+            Spacer()
+
+            Button(action: toggleFavorite) {
+                Image(systemName: isFavorite ? "heart.fill" : "heart")
+                    .foregroundColor(isFavorite ? .red : .gray)
+                    .font(.system(size: 20))
+            }
+            .buttonStyle(BorderlessButtonStyle())
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+
+
+ - ForEach in SwiftUI builds a view for each item in a collection; here we use it to draw five star icons, choosing filled vs empty based on the index.
+ - List is the SwiftUI container that shows one AttractionRowView per attraction.
+ - The rating logic is just pure Swift math, but wrapped in computed properties (again, values derived from other stored data rather than stored themselves).
+
+```
+   // Corrected code AttractionRowView
+struct AttractionRowView: View {
+    let attraction: Attraction
+    let isFavorite: Bool
+    let toggleFavorite: () -> Void
+
+    // Clamp rating into 0...5
+    private var clampedRating: Double {
+        min(max(attraction.rating, 0), 5)
+    }
+
+    // Rounded number of filled stars
+    private var filledStars: Int {
+        Int(clampedRating.rounded())
+    }
+
+    var body: some View {
+        HStack {
+            Text(attraction.category.rawValue)
+                .font(.system(size: 40))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(attraction.name)
+                    .font(.headline)
+
+                Text(attraction.description)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+
+                HStack {
+                    // Stars now reflect the rating
+                    HStack(spacing: 2) {
+                        ForEach(0..<5) { index in
+                            Image(systemName: index < filledStars ? "star.fill" : "star")
+                                .foregroundColor(.yellow)
+                                .font(.system(size: 12))
+                        }
+                    }
+
+                    // Display the real (clamped) rating
+                    Text(String(format: "%.1f", clampedRating))
+                        .font(.caption)
+                        .foregroundColor(.gray)
+
+                    Spacer()
+
+                    Text(attraction.isOpen ? "Open" : "Closed")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(attraction.isOpen ? Color.green.opacity(0.2) :
+                                      Color.red.opacity(0.2))
+                        .cornerRadius(4)
+                }
+            }
+
+            Spacer()
+
+            Button(action: toggleFavorite) {
+                Image(systemName: isFavorite ? "heart.fill" : "heart")
+                    .foregroundColor(isFavorite ? .red : .gray)
+                    .font(.system(size: 20))
+            }
+            .buttonStyle(BorderlessButtonStyle())
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+```
+   
+\ **Minor UX bug in favorites button**
    The toolbar heart icon showed `heart` when favorites were active and `heart.fill` when inactive, reversing the usual convention and confusing the meaning of the button.
 
 Together these issues affected compilation, filtering logic, and how trustworthy the UI felt.
 
 ---
 
-## 2. Debugging Tools
 
-To track these down I used several debugging tools and techniques:
-
-* **Compiler errors and Xcode warnings** for the missing type on `filteredAttractions`. The red error pointed directly to the property and made it clear I needed a return type.
-* **SwiftUI Preview / live preview** to interactively run the app and observe behavior as I changed filters and toggled favorites without doing a full simulator run each time.
-* **Print logging** inside `filteredAttractions` to inspect the count and contents of `results` after each filter step:
 
   ```swift
   print("After category filter:", results.count)
@@ -215,18 +492,22 @@ I then implemented and tested a set of targeted fixes:
 
    Now `heart.fill` clearly means “favorites filter active”.
 
-After each change I re-ran the SwiftUI Preview and manually tested: changing categories, searching, toggling favorites on and off, and checking that the ratings and stars look correct. The app now compiles cleanly and the filters behave as expected.
 
----
 
 ## 4. Reflection
 
-Working through this debugging task reinforced a few key lessons:
+Working on this debugging task reinforced the following concpets: 
 
 * **Start with compiler errors, then move to behavior.** Fixing the type error on `filteredAttractions` first unblocked the project and made it easier to reason about runtime behavior.
-* **Logic bugs often hide in “small” operators.** Swapping `!=` for `==` and removing a stray `!` were single-character changes, but they completely flipped the meaning of both filters. Reading code in plain English (“keep only items where category equals the selected category”) helped me spot these mistakes.
-* **Testing with real usage scenarios is essential.** Simply looking at the code would not have revealed that favorites could never be removed. Clicking through the UI like an actual user quickly exposed the problem.
-* **Multiple feedback channels make debugging faster.** Combining preview, logging, and occasional debugger inspection gave me both a high-level feel for the UI and low-level visibility into data flow.
-* **Clean, explicit code reduces future bugs.** Adding an explicit type to `filteredAttractions` and encapsulating rating clamping in helper properties make the intent clearer for anyone (including my future self) reading or modifying this code.
+  
+* **Logic bugs often hide in “small” operators.** Swapping `!=` for `==` and removing the `!` were single-character changes, but they completely flipped the meaning of the filters. Reading code in plain English (“keep only items where category equals the selected category”) helped me spot these mistakes.
 
-Overall, the exercise showed me how small logic errors propagate into confusing UX, and how a systematic debugging approach—observe, hypothesize, instrument, fix, retest—leads to clean, reliable SwiftUI code.
+  
+* **Importance of Testing with real usage scenarios.** Simply looking at the code would not have revealed that favorites could never be removed. Clicking through the UI like an actual user quickly exposed the problem.
+
+  
+* **Multiple feedback channels make debugging faster.** Combining preview, logging, and occasional debugger inspection gave me both a high-level feel for the UI and low-level visibility into data flow.
+  
+* **Clean, explicit code reduces future bugs.** Adding an explicit type to `filteredAttractions` and encapsulating rating clamping in helper properties make the intent clearer for anyone including for my future use  - reading or modifying this code.
+
+In general, the exercise showed me how small logic errors propagate into confusing UX, and how a systematic debugging approach - observe, hypothesize, instrument, fix, retest-leads to clean, reliable SwiftUI code.
