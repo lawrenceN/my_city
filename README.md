@@ -398,7 +398,7 @@ struct AttractionRowView: View {
 
 Together these issues affected compilation, filtering logic, and how trustworthy the UI felt.
 
----
+
 
 
 
