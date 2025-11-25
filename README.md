@@ -1,10 +1,10 @@
-# Introduction to the Bug Hunt Challenge - Assignment 
+# Introduction to the Bug Hunt Challenge  -  Assignment 
 
 My City is a SwiftUI travel guide App.  The App shows attractions in a number of European cities - ```Paris, Rome, Barcelona, and Berlin```.
 
 Users can:
 
-- Browse a List of attractions,
+- Browse a List of attractions
 - Filter them by category - ```Food, Museum, Sports, and Historical```,
 - Search by name or city,
 - Tap the heart to mark favorites and then filter to show favorites only.
@@ -12,10 +12,12 @@ Users can:
 The view is driven by SwiftUI state such that when any state value changes, SwiftUI will the view hierarchy and the UI updates.
 
 
+
 ## Screenshots of the output of the program:
 <img width="936" height="1756" alt="image" src="https://github.com/user-attachments/assets/b73a585e-c3a0-4e07-bb5c-821f50a7f1c2" />
 
 Figure 1: On View on Loading the App
+
 
 
 <img width="770" height="1722" alt="image" src="https://github.com/user-attachments/assets/6b80796e-46c7-4581-bd11-19ddf7dacc98" />
@@ -40,16 +42,17 @@ private var filteredAttractions {
     return results
 }
 ```
+
 Corrected code - with return type
 
+
 ```
-// FIXED
+// Corrected
 private var filteredAttractions: [Attraction] {
     var results = attractions
     // ... filtering logic ...
     return results
 }
-
 ```
 
  
@@ -61,19 +64,22 @@ In Swift, a property declaration must include a type annotation (or a type that 
 For computed properties you typically declare the type explicitly. 
 
 
-
-   This caused a compile-time error because Swift requires a return type for every computed property.
+This caused a compile-time error because Swift requires a return type for every computed property.
 
 2. **Category filter  - != Vs ==**
-    The above is found in the filteredAttractions,
+   
+    The above is found in the filteredAttractions
+   
 
-        ```
+   ```
    // ORIGINAL – inverted logic
         if let category = selectedCategory {
             results = results.filter { $0.category != category }
         }
    ```
-    When the user selects "Food", it removed the food attractions instread of keeping them. So we modify the code to keep them as follows:
+
+   
+When the user selects "Food", it removed the food attractions instread of keeping them. So we modify the code to keep them as follows:
 
 
 ```
