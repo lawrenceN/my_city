@@ -219,7 +219,7 @@ References: https://developer.apple.com/documentation/swiftui/state
     - The problem with this is that: Every row showed five filled stars, even for poor ratings.
     - The numeric rating was also doubled (rating * 2), and hence the real-world 0–5 ratings appeared as 0–10.
 
-
+```
 // ORIGINAL AttractionRowView code
 struct AttractionRowView: View {
     let attraction: Attraction
@@ -280,11 +280,14 @@ struct AttractionRowView: View {
     }
 }
 
+```
+
+The problem with this code is that:
+- Every row showed five filled stars, even for poor ratings.
+
+- The numeric rating was doubled (rating * 2), so real-world 0–5 ratings appeared as 0–10.
 
 
- - ForEach in SwiftUI builds a view for each item in a collection; here we use it to draw five star icons, choosing filled vs empty based on the index.
- - List is the SwiftUI container that shows one AttractionRowView per attraction.
- - The rating logic is just pure Swift math, but wrapped in computed properties (again, values derived from other stored data rather than stored themselves).
 
 ```
    // Corrected code AttractionRowView
@@ -357,115 +360,19 @@ struct AttractionRowView: View {
 }
 
 ```
+
+The rating logic is just pure math in Shift, but wrapped in computed properties. 
+
+
    
-\ **Minor UX bug in favorites button**
-   The toolbar heart icon showed `heart` when favorites were active and `heart.fill` when inactive, reversing the usual convention and confusing the meaning of the button.
+7.  **Minor bug in favorites button**
+   
+   The toolbar heart icon showed `heart` when favorites were active and `heart.fill` when inactive, and this was reversing the usual convention and confusing.
 
 Together these issues affected compilation, filtering logic, and how trustworthy the UI felt.
 
 
-
-
-
-  ```swift
-  print("After category filter:", results.count)
-  print("Favorites only:", showFavorites, "current favorites:", favoriteIds.count)
-  ```
-
-  This confirmed that the wrong items were being removed when a category or favorites filter was enabled.
-* **Quick inspections in the debugger (`po` in LLDB)** to verify the values of `selectedCategory`, `showFavorites`, and `favoriteIds` at runtime.
-* **UI inspection in the preview** to verify star counts and rating labels visually after changes to `AttractionRowView`.
-
-Using these tools together gave me both *what* was wrong (compiler and preview) and *why* it was wrong (logging / inspection).
-
----
-
-## 3. Fix Implementation
-
-I then implemented and tested a set of targeted fixes:
-
-1. **Give `filteredAttractions` an explicit type**
-
-   ```swift
-   private var filteredAttractions: [Attraction] {
-       var results = attractions
-       ...
-       return results
-   }
-   ```
-
-   This resolved the compile error and clearly communicates the intention of the property.
-
-2. **Correct the category filter logic**
-
-   ```swift
-   if let category = selectedCategory {
-       results = results.filter { $0.category == category }
-   }
-   ```
-
-   Now selecting “Food” correctly shows only food attractions, etc.
-
-3. **Correct the favorites filter logic**
-
-   ```swift
-   if showFavorites {
-       results = results.filter { favoriteIds.contains($0.id) }
-   }
-   ```
-
-   With this change, turning on the favorites filter restricts the list to items whose IDs are in the `favoriteIds` set.
-
-4. **Implement a true toggle for favorites**
-
-   ```swift
-   AttractionRowView(
-       attraction: attraction,
-       isFavorite: favoriteIds.contains(attraction.id),
-       toggleFavorite: {
-           if favoriteIds.contains(attraction.id) {
-               favoriteIds.remove(attraction.id)
-           } else {
-               favoriteIds.insert(attraction.id)
-           }
-       }
-   )
-   ```
-
-   Tapping the heart now adds a favorite if it is not present, or removes it if it already is.
-
-5. **Fix rating display and star rendering (in `AttractionRowView`)**
-
-   * Clamp the rating and compute how many stars to fill:
-
-     ```swift
-     private var clampedRating: Double { min(max(attraction.rating, 0), 5) }
-     private var filledStars: Int { Int(clampedRating.rounded()) }
-     ```
-
-   * Use that to draw the stars and label:
-
-     ```swift
-     ForEach(0..<5) { index in
-         Image(systemName: index < filledStars ? "star.fill" : "star")
-     }
-     Text(String(format: "%.1f", clampedRating))
-     ```
-
-   This keeps the numeric rating in the 0–5 range and aligns the icon display with the value.
-
-6. **Align the toolbar heart icon with the filter state**
-
-   ```swift
-   Image(systemName: showFavorites ? "heart.fill" : "heart")
-       .foregroundColor(.red)
-   ```
-
-   Now `heart.fill` clearly means “favorites filter active”.
-
-
-
-## 4. Reflection
+##  Reflection
 
 Working on this debugging task reinforced the following concpets: 
 
