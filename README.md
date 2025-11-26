@@ -26,11 +26,11 @@ Figure 2: Search Results View
 
 
 
-## 1. Bug Identification
+## Bug Identification
 
 In the *My City* project the following *logic and UI bugs* were found:
 
-1. **Missing return type on `filteredAttractions`** -
+1. **Missing return type on `filteredAttractions`** 
 
 ```
 Origianal code:
@@ -59,16 +59,16 @@ private var filteredAttractions: [Attraction] {
 References - https://docs.swift.org/swift-book/documentation/the-swift-programming-language/properties - under the section on Properties 
 
 
-filteredAttractions is a computed property and therefore it doesn’t store a value, it computes it every time from other properties. 
-In Swift, a property declaration must include a type annotation (or a type that the compiler can infer directly). 
-For computed properties you typically declare the type explicitly. 
+ - filteredAttractions is a computed property and therefore it doesn’t store a value, it computes it every time from other properties.
+ - In Swift, a property declaration must include a type annotation (or a type that the compiler can infer directly).
+ - For computed properties you typically declare the type explicitly. 
 
 
 This caused a compile-time error because Swift requires a return type for every computed property.
 
 2. **Category filter  - != Vs ==**
    
-    The above is found in the filteredAttractions
+The above is found in the filteredAttractions
    
 
    ```
@@ -79,7 +79,7 @@ This caused a compile-time error because Swift requires a return type for every 
    ```
 
    
-When the user selects "Food", it removed the food attractions instread of keeping them. So we modify the code to keep them as follows:
+When the user selects "Food", it removed the food attractions instead of keeping them. So we modify the code to keep them as follows:
 
 
 ```
@@ -92,8 +92,8 @@ if let category = selectedCategory {
 
 References: https://developer.apple.com/documentation/swift/array
 
-filter() returns a new array containing only the elements that satisfy the predicate.
-Hence the correct predicate must be “category equals selectedCategory”, so the correct operator is ==, not !=.
+- filter() returns a new array containing only the elements that satisfy the predicate.
+- Hence the correct predicate must be “category equals selectedCategory”, so the correct operator is ==, not !=.
 
 
 
@@ -107,11 +107,19 @@ if showFavorites {
     results = results.filter { !favoriteIds.contains($0.id) }
 }
 ```
-
 The code turning on the favorites filter ends up removing the favourites from the list.
 
-- showFavorites is marked with @State, so changing it automatically recomputes the view and updates the icon.
-- SwiftUI’s state system is built so that “the UI is a function of state”; the icon is just a projection of the showFavorites Boolean.
+```
+// Corrected - This will show only favorites when showFavorites is true
+if showFavorites {
+    results = results.filter { favoriteIds.contains($0.id) }
+}
+```
+
+
+
+- The correct predicate is “ID is contained in the set of favorite IDs”.
+- Sets are collections of unique elements with fast membership tests.
 
 
 ```
