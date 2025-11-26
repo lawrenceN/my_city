@@ -116,46 +116,8 @@ if showFavorites {
 }
 ```
 
-
-
 - The correct predicate is “ID is contained in the set of favorite IDs”.
 - Sets are collections of unique elements with fast membership tests.
-
-
-```
-// Corrected  -  filled heart means  that the “favorites filter is ON”
-.toolbar {
-    ToolbarItem(placement: .navigationBarTrailing) {
-        Button(action: {
-            showFavorites.toggle()
-        }) {
-            Image(systemName: showFavorites ? "heart.fill" : "heart")
-                .foregroundColor(.red)
-        }
-        .accessibilityLabel(showFavorites ? "Show all attractions" : "Show favourites only")
-    }
-}
-```
-
-
-
-```
-// Corrected  -  We only show the favorites when showFavorites is true
-if showFavorites {
-    results = results.filter { favoriteIds.contains($0.id) }
-}
-```
-
-
-References: https://developer.apple.com/documentation/swift/set
-
-
- - favoriteIds is a Set<UUID> storing the IDs of favorited attractions (Apple Developer website).
- - Sets are collections of unique elements with fast membership tests.
- - The correct predicate is “ID is contained in the set of favorite IDs”
-
-
-Therefore, Enabling the “favorites” filter. 
 
 
 4. **Togggling favorites by use of Set.insert/ set.remove**
