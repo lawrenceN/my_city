@@ -120,12 +120,12 @@ if showFavorites {
 - Sets are collections of unique elements with fast membership tests.
 
 
-4. **Togggling favorites by use of Set.insert/ set.remove**
+4. **Togggling favorites by use of Set.insert/ Set.remove**
 
 This is found in the List where each row passes a closure to AttractionRowView.
 
 ```
-// ORIGINAL -  only add favorites, never remove it 
+// original code -  only add favorites, never remove it 
 List(filteredAttractions) { attraction in
     AttractionRowView(
         attraction: attraction,
@@ -137,7 +137,7 @@ List(filteredAttractions) { attraction in
 }
 ```
 
-This lives in the List where each row passes a closure to AttractionRowView.
+This lives in the List where each row passes a closure to AttractionRowView, so that tapping the heart repeatedly only ever inserted the ID; it never removed it.
 
 
 
@@ -159,15 +159,10 @@ List(filteredAttractions) { attraction in
 
 ```
 
-
-  - This is a standard pattern used for toggling membership in a Set.
-
-Tapping the heart several times only ever added IDs to the set; there was no way to toggle and remove it.
-
+This is a standard pattern used for toggling membership in a Set.
 
 
 Reference: https://developer.apple.com/documentation/swift/set
-
  - Set.insert() adds an element if it isn’t already present.
  - Set.remove(_:) removes an element from the set.
  - This is a standard pattern for toggling membership in a Set.
@@ -176,7 +171,7 @@ Reference: https://developer.apple.com/documentation/swift/set
 
 5. **Toolbar heart Icon - need the mapping @state to UI**
 
-   When showFavorites is set to true, the UI will show an empty heart. 
+  
 
 ```
 // ORIGINAL - the  icon meaning is reversed
@@ -191,7 +186,7 @@ Reference: https://developer.apple.com/documentation/swift/set
     }
 }
 ```
-
+ When showFavorites is set to true, the UI will show an empty heart. 
 
 References: https://developer.apple.com/documentation/swiftui/state
 
@@ -212,7 +207,7 @@ References: https://developer.apple.com/documentation/swiftui/state
 
 ```
 
- - showFavorites is marked with @State, so changing it automatically will recompute the view and updates the icon.
+
  - SwiftUI’s state system is built so that “the UI is a function of state”; the icon is just a projection of the showFavorites Boolean (Apple Developer).
 
 
